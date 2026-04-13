@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+venv/
+env/
+
+# Pasta de dados gerada pelo Mnemos (não sobe dados pessoais)
+demo_data*/
+mvp_data/
+evopalace_data/
+*.yaml
+graph.json
+
+# OS
+.DS_Store
+Thumbs.db
