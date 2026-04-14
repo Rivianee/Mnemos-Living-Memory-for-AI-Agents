@@ -67,14 +67,14 @@ def get_embedding(text: str, api_key: Optional[str] = None) -> list[float]:
     """
     if api_key:
         try:
-            import google.generativeai as genai
-            genai.configure(api_key=api_key)
-            result = genai.embed_content(
-                model="models/text-embedding-004",
-                content=text,
-                task_type="retrieval_document"
-            )
-            return result["embedding"]
+            import requests
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key={api_key}"
+            body = {"model": "models/gemini-embedding-001", "content": {"parts": [{"text": text}]}}
+            r = requests.post(url, json=body, timeout=10)
+            if not r.ok:
+                print(f"[DEBUG API] {r.status_code}: {r.text[:300]}")
+            r.raise_for_status()
+            return r.json()["embedding"]["values"]
         except Exception as e:
             print(f"[WARN] Embedding API falhou, usando modo offline: {e}")
 
@@ -368,6 +368,57 @@ class EvoPalace:
 
     # ── Persistência ──────────────────────────────────────────────────────────
 
+    def load_demo_memories(self, count: int = 15):
+        """Carrega memórias de demonstração variadas para testes rápidos."""
+        demo_data = [
+            ("Riviane prefere respostas diretas, curtas, sem enrolação e com emojis moderados", "usuario/preferencias", 0.95),
+            ("O projeto se chama Mnemos e é uma memória viva que reorganiza e esquece sozinha", "projeto/objetivo", 0.93),
+            ("Nunca commitar sem rodar os testes primeiro", "projeto/regras", 0.90),
+            ("Lembrar de comprar café amanhã", "pessoal/tarefas", 0.15),
+            ("Milla Jovovich lançou MemPalace em 05/04/2026 e viralizou com ~40k stars", "contexto/ia", 0.80),
+            ("Eu gosto de projetos que combinam memória dinâmica com visualização bonita", "usuario/gostos", 0.85),
+            ("Em conversas longas, rodar consolidação a cada 30-50 interações ajuda muito", "projeto/dicas", 0.88),
+            ("Teste de contexto longo: o palácio deve manter preferências mesmo após muitas mensagens", "teste/limite", 0.82),
+            ("Skill viva básica será adicionada na próxima fase", "roadmap/skills", 0.70),
+            # Adicione mais se quiser
+        ][:count]
+        for content, room, imp in demo_data:
+            self.remember(content, room=room, importance=imp)
+        print(f"[DEMO] {len(demo_data)} memórias carregadas com sucesso!")
+
+    def get_palace_map(self) -> dict:
+        """Dados para visualização do palácio (rooms + centralidade)."""
+        rooms = {}
+        for mem_id, meta in self._meta.items():
+            room = meta.get("room", "general")
+            if room not in rooms:
+                rooms[room] = {"count": 0, "centrality": 0.0, "memories": []}
+            rooms[room]["count"] += 1
+            rooms[room]["memories"].append({
+                "id": mem_id,
+                "importance": meta.get("importance", 0.5),
+                "access_count": meta.get("access_count", 1)
+            })
+
+        if self._graph.number_of_nodes() > 0:
+            try:
+                centrality = nx.pagerank(self._graph, weight="weight")
+                for mem_id, score in centrality.items():
+                    if mem_id in self._meta:
+                        room = self._meta[mem_id].get("room")
+                        if room in rooms:
+                            rooms[room]["centrality"] = max(rooms[room]["centrality"], score)
+            except:
+                pass
+
+        return {
+            "rooms": rooms,
+            "total_rooms": len(rooms),
+            "total_memories": len(self._meta),
+            "graph_nodes": self._graph.number_of_nodes(),
+            "graph_edges": self._graph.number_of_edges()
+        }
+    
     def _load_meta(self) -> dict:
         if os.path.exists(self._meta_path):
             with open(self._meta_path, "r") as f:
