@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mnemos — Living Memory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #1a1a24;
+    --border: #2a2a3a;
+    --accent: #7c6aff;
+    --accent2: #ff6a9a;
+    --accent3: #6affce;
+    --text: #e8e8f0;
+    --muted: #6b6b80;
+    --danger: #ff4f6a;
+    --success: #4fffb0;
+    --warning: #ffcc4f;
+  }
+ 
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+ 
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+ 
+  /* ── Noise texture overlay ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+ 
+  /* ── Layout ── */
+  .app { position: relative; z-index: 1; display: flex; flex-direction: column; min-height: 100vh; }
+ 
+  /* ── Header ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 32px;
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(12px);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10,10,15,0.85);
+  }
+ 
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+ 
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    box-shadow: 0 0 20px rgba(124,106,255,0.4);
+  }
+ 
+  .logo-text {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: -0.5px;
+  }
+ 
+  .logo-sub {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+ 
+  .status-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    border-radius: 20px;
+  }
+ 
+  .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--success);
+    box-shadow: 0 0 8px var(--success);
+    animation: pulse 2s infinite;
+  }
+ 
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+ 
+  /* ── Stats bar ── */
+  .stats-bar {
+    display: flex;
+    gap: 1px;
+    background: var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+ 
+  .stat {
+    flex: 1;
+    padding: 16px 24px;
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: background 0.2s;
+  }
+ 
+  .stat:hover { background: var(--surface2); }
+ 
+  .stat-value {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 24px;
+    color: var(--text);
+  }
+ 
+  .stat-label {
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+ 
+  /* ── Tabs ── */
+  .tabs {
+    display: flex;
+    gap: 0;
+    padding: 24px 32px 0;
+    border-bottom: 1px solid var(--border);
+  }
+ 
+  .tab {
+    padding: 10px 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    border: none;
+    background: none;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    position: relative;
+    top: 1px;
+  }
+ 
+  .tab:hover { color: var(--text); }
+ 
+  .tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+ 
+  .tab-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px; height: 16px;
+    border-radius: 4px;
+    font-size: 9px;
+    font-weight: 600;
+    margin-left: 6px;
+    background: var(--danger);
+    color: white;
+  }
+ 
+  /* ── Main content ── */
+  main { flex: 1; padding: 32px; }
+ 
+  .panel { display: none; animation: fadeIn 0.3s ease; }
+  .panel.active { display: block; }
+ 
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+ 
+  /* ── Section header ── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+ 
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--text);
+  }
+ 
+  .section-desc {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+ 
+  /* ── Buttons ── */
+  .btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 500;
+  }
+ 
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+    box-shadow: 0 0 20px rgba(124,106,255,0.3);
+  }
+ 
+  .btn-primary:hover {
+    background: #9b8dff;
+    box-shadow: 0 0 28px rgba(124,106,255,0.5);
+    transform: translateY(-1px);
+  }
+ 
+  .btn-success {
+    background: rgba(79,255,176,0.15);
+    color: var(--success);
+    border: 1px solid rgba(79,255,176,0.3);
+  }
+ 
+  .btn-success:hover {
+    background: rgba(79,255,176,0.25);
+    transform: translateY(-1px);
+  }
+ 
+  .btn-danger {
+    background: rgba(255,79,106,0.15);
+    color: var(--danger);
+    border: 1px solid rgba(255,79,106,0.3);
+  }
+ 
+  .btn-danger:hover {
+    background: rgba(255,79,106,0.25);
+    transform: translateY(-1px);
+  }
+ 
+  .btn-ghost {
+    background: var(--surface2);
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+ 
+  .btn-ghost:hover { color: var(--text); border-color: var(--muted); }
+ 
+  /* ── Cards ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    transition: border-color 0.2s, transform 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+ 
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(124,106,255,0.3), transparent);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+ 
+  .card:hover { border-color: rgba(124,106,255,0.4); transform: translateY(-1px); }
+  .card:hover::before { opacity: 1; }
+ 
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 16px;
+  }
+ 
+  /* ── Pending card ── */
+  .pending-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    transition: border-color 0.2s;
+    border-left: 3px solid var(--warning);
+  }
+ 
+  .pending-card:hover { border-color: rgba(255,204,79,0.5); }
+ 
+  .pending-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+ 
+  .tag {
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 500;
+  }
+ 
+  .tag-room { background: rgba(124,106,255,0.15); color: var(--accent); }
+  .tag-agent { background: rgba(106,255,206,0.1); color: var(--accent3); }
+  .tag-shared { background: rgba(255,106,154,0.1); color: var(--accent2); }
+  .tag-importance { background: rgba(255,204,79,0.1); color: var(--warning); }
+ 
+  .pending-content {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.6;
+    font-style: italic;
+  }
+ 
+  .pending-reason {
+    font-size: 11px;
+    color: var(--muted);
+    border-left: 2px solid var(--border);
+    padding-left: 10px;
+  }
+ 
+  .pending-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    padding-top: 6px;
+    border-top: 1px solid var(--border);
+  }
+ 
+  /* ── Memory card ── */
+  .memory-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: all 0.2s;
+  }
+ 
+  .memory-card:hover { border-color: rgba(124,106,255,0.3); }
+ 
+  .memory-importance {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+ 
+  .importance-bar {
+    flex: 1;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+ 
+  .importance-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width 0.5s ease;
+  }
+ 
+  .importance-val {
+    font-size: 10px;
+    color: var(--muted);
+    min-width: 32px;
+    text-align: right;
+  }
+ 
+  .memory-content {
+    font-size: 12px;
+    color: var(--text);
+    line-height: 1.6;
+  }
+ 
+  .memory-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+ 
+  .memory-id {
+    font-size: 10px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+  }
+ 
+  /* ── Notes editor ── */
+  .notes-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+ 
+  .editor-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+ 
+  .field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+ 
+  .field-label {
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+ 
+  input, textarea, select {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 10px 14px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+    width: 100%;
+  }
+ 
+  input:focus, textarea:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(124,106,255,0.1);
+  }
+ 
+  textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
+ 
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+ 
+  input[type="range"] {
+    padding: 0;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+ 
+  .slider-val {
+    font-size: 12px;
+    color: var(--accent);
+    min-width: 32px;
+    text-align: right;
+  }
+ 
+  /* ── Recall panel ── */
+  .recall-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+ 
+  .recall-input { flex: 1; }
+ 
+  /* ── Empty state ── */
+  .empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+  }
+ 
+  .empty-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.4; }
+  .empty-text { font-size: 13px; }
+ 
+  /* ── Toast ── */
+  .toast-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 999;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+ 
+  .toast {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    animation: slideIn 0.3s ease;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    max-width: 320px;
+  }
+ 
+  .toast.success { border-left: 3px solid var(--success); }
+  .toast.error { border-left: 3px solid var(--danger); }
+ 
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+ 
+  /* ── Audit log ── */
+  .audit-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+  }
+ 
+  .audit-item:last-child { border-bottom: none; }
+ 
+  .audit-action {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    min-width: 70px;
+    text-align: center;
+  }
+ 
+  .audit-approved { background: rgba(79,255,176,0.15); color: var(--success); }
+  .audit-rejected { background: rgba(255,79,106,0.15); color: var(--danger); }
+  .audit-proposed { background: rgba(255,204,79,0.1); color: var(--warning); }
+ 
+  .audit-id { color: var(--accent); font-family: 'DM Mono', monospace; }
+  .audit-by { color: var(--muted); }
+  .audit-time { color: var(--muted); margin-left: auto; }
+ 
+  /* ── Loading ── */
+  .loading {
+    display: inline-block;
+    width: 12px; height: 12px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+ 
+  @keyframes spin { to { transform: rotate(360deg); } }
+ 
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+</style>
+</head>
+<body>
+<div class="app">
+ 
+  <!-- Header -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">🧠</div>
+      <div>
+        <div class="logo-text">Mnemos</div>
+        <div class="logo-sub">Living Memory</div>
+      </div>
+    </div>
+    <div class="status-pill">
+      <div class="status-dot"></div>
+      <span id="api-status">connecting...</span>
+    </div>
+  </header>
+ 
+  <!-- Stats -->
+  <div class="stats-bar">
+    <div class="stat">
+      <div class="stat-value" id="stat-total">—</div>
+      <div class="stat-label">Local Memories</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="stat-shared">—</div>
+      <div class="stat-label">Shared Memories</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="stat-pending">—</div>
+      <div class="stat-label">Pending Approval</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="stat-rooms">—</div>
+      <div class="stat-label">Rooms</div>
+    </div>
+  </div>
+ 
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('pending')">
+      Pending <span class="tab-badge" id="pending-badge" style="display:none">0</span>
+    </button>
+    <button class="tab" onclick="switchTab('memories')">Memories</button>
+    <button class="tab" onclick="switchTab('notes')">Notes</button>
+    <button class="tab" onclick="switchTab('recall')">Recall</button>
+    <button class="tab" onclick="switchTab('audit')">Audit</button>
+  </div>
+ 
+  <!-- Main -->
+  <main>
+ 
+    <!-- Pending -->
+    <div class="panel active" id="panel-pending">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Pending Approval</div>
+          <div class="section-desc">Review memories proposed by agents before sharing with the team</div>
+        </div>
+        <button class="btn btn-ghost" onclick="loadPending()">↻ Refresh</button>
+      </div>
+      <div id="pending-list"></div>
+    </div>
+ 
+    <!-- Memories -->
+    <div class="panel" id="panel-memories">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Memory Browser</div>
+          <div class="section-desc">All local memories sorted by importance</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost" onclick="loadMemories()">↻ Refresh</button>
+          <button class="btn btn-ghost" onclick="runReorganize()">⟳ Reorganize</button>
+          <button class="btn btn-danger" onclick="runForget()">💤 Forget</button>
+        </div>
+      </div>
+      <div class="card-grid" id="memories-list"></div>
+    </div>
+ 
+    <!-- Notes -->
+    <div class="panel" id="panel-notes">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Intentional Memory</div>
+          <div class="section-desc">Write memories you want your agents to always know</div>
+        </div>
+      </div>
+      <div class="notes-layout">
+        <div class="editor-panel">
+          <div class="field-group">
+            <label class="field-label">Content</label>
+            <textarea id="note-content" placeholder="e.g. Always use conventional commits. Never expose env variables in logs."></textarea>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Room</label>
+            <input id="note-room" placeholder="project/rules" value="project/rules">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Importance</label>
+            <div class="slider-row">
+              <input type="range" id="note-importance" min="0" max="1" step="0.05" value="0.9"
+                oninput="document.getElementById('note-imp-val').textContent = parseFloat(this.value).toFixed(2)">
+              <span class="slider-val" id="note-imp-val">0.90</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary" onclick="saveNote(false)" style="flex:1">Save Local</button>
+            <button class="btn btn-success" onclick="saveNote(true)" style="flex:1">Save + Propose Shared</button>
+          </div>
+        </div>
+        <div class="card" style="display:flex;flex-direction:column;gap:12px">
+          <div class="section-title" style="font-size:13px">Quick templates</div>
+          <div id="templates"></div>
+        </div>
+      </div>
+    </div>
+ 
+    <!-- Recall -->
+    <div class="panel" id="panel-recall">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Recall</div>
+          <div class="section-desc">Search memories by meaning</div>
+        </div>
+      </div>
+      <div class="recall-bar">
+        <input class="recall-input" id="recall-query" placeholder="What do your agents need to know right now?" 
+          onkeydown="if(event.key==='Enter') runRecall()">
+        <select id="recall-scope" style="width:auto;min-width:130px">
+          <option value="local">Local</option>
+          <option value="shared">Shared</option>
+        </select>
+        <button class="btn btn-primary" onclick="runRecall()">Search</button>
+      </div>
+      <div id="recall-results"></div>
+    </div>
+ 
+    <!-- Audit -->
+    <div class="panel" id="panel-audit">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Audit Trail</div>
+          <div class="section-desc">Full history of shared memory decisions</div>
+        </div>
+        <button class="btn btn-ghost" onclick="loadAudit()">↻ Refresh</button>
+      </div>
+      <div class="card" id="audit-list"></div>
+    </div>
+ 
+  </main>
+</div>
+ 
+<!-- Toast container -->
+<div class="toast-container" id="toasts"></div>
+ 
+<script>
+const API = 'http://localhost:8000';
+ 
+// ── Toast ──────────────────────────────────────────────────────────────────
+ 
+function toast(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span>${type === 'success' ? '✓' : '✗'}</span><span>${msg}</span>`;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+ 
+// ── Tabs ───────────────────────────────────────────────────────────────────
+ 
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById(`panel-${name}`).classList.add('active');
+  if (name === 'pending') loadPending();
+  if (name === 'memories') loadMemories();
+  if (name === 'audit') loadAudit();
+}
+ 
+// ── API helpers ────────────────────────────────────────────────────────────
+ 
+async function api(method, path, body) {
+  const r = await fetch(API + path, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+ 
+// ── Status ─────────────────────────────────────────────────────────────────
+ 
+async function loadStatus() {
+  try {
+    const [local, shared] = await Promise.all([
+      api('GET', '/memory/status'),
+      api('GET', '/shared/status'),
+    ]);
+    document.getElementById('stat-total').textContent = local.total_memories ?? 0;
+    document.getElementById('stat-shared').textContent = shared.total_memories ?? 0;
+    document.getElementById('stat-pending').textContent = shared.pending_count ?? 0;
+    document.getElementById('stat-rooms').textContent = Object.keys(local.rooms || {}).length;
+    document.getElementById('api-status').textContent = 'connected';
+ 
+    const pending = shared.pending_count ?? 0;
+    const badge = document.getElementById('pending-badge');
+    if (pending > 0) {
+      badge.textContent = pending;
+      badge.style.display = 'inline-flex';
+    } else {
+      badge.style.display = 'none';
+    }
+  } catch {
+    document.getElementById('api-status').textContent = 'offline — start uvicorn';
+  }
+}
+ 
+// ── Pending ────────────────────────────────────────────────────────────────
+ 
+async function loadPending() {
+  const el = document.getElementById('pending-list');
+  el.innerHTML = '<div class="loading" style="margin:40px auto;display:block"></div>';
+  try {
+    const { pending } = await api('GET', '/shared/pending');
+    if (!pending.length) {
+      el.innerHTML = '<div class="empty"><div class="empty-icon">✓</div><div class="empty-text">No memories pending approval</div></div>';
+      return;
+    }
+    el.innerHTML = pending.map(p => `
+      <div class="pending-card" id="pending-${p.id}" style="margin-bottom:12px">
+        <div class="pending-meta">
+          <span class="tag tag-room">${p.room}</span>
+          <span class="tag tag-agent">${p.proposed_by}</span>
+          <span class="tag tag-importance">imp ${p.importance}</span>
+          <span style="font-size:10px;color:var(--muted);margin-left:auto">${p.proposed_at}</span>
+        </div>
+        <div class="pending-content">"${p.content}"</div>
+        <div class="pending-reason">↳ ${p.reason}</div>
+        <div class="pending-actions">
+          <button class="btn btn-danger" onclick="rejectMemory('${p.id}')">Reject</button>
+          <button class="btn btn-success" onclick="approveMemory('${p.id}')">Approve →</button>
+        </div>
+      </div>
+    `).join('');
+  } catch(e) {
+    el.innerHTML = `<div class="empty"><div class="empty-text" style="color:var(--danger)">Could not load — is the API running?</div></div>`;
+  }
+}
+ 
+async function approveMemory(id) {
+  try {
+    await api('POST', `/shared/approve/${id}`, { approved_by: 'human' });
+    document.getElementById(`pending-${id}`)?.remove();
+    toast('Memory approved and shared with team');
+    loadStatus();
+  } catch(e) {
+    toast('Error approving memory', 'error');
+  }
+}
+ 
+async function rejectMemory(id) {
+  try {
+    await api('POST', `/shared/reject/${id}`, { rejected_by: 'human', note: '' });
+    document.getElementById(`pending-${id}`)?.remove();
+    toast('Memory rejected — stays local', 'error');
+    loadStatus();
+  } catch(e) {
+    toast('Error rejecting memory', 'error');
+  }
+}
+ 
+// ── Memories ───────────────────────────────────────────────────────────────
+ 
+async function loadMemories() {
+  const el = document.getElementById('memories-list');
+  el.innerHTML = '<div class="loading" style="margin:40px auto;display:block"></div>';
+  try {
+    const { memories } = await api('GET', '/memory/all');
+    if (!memories.length) {
+      el.innerHTML = '<div class="empty"><div class="empty-icon">○</div><div class="empty-text">No memories yet</div></div>';
+      return;
+    }
+    el.innerHTML = memories.map(m => `
+      <div class="memory-card">
+        <div class="memory-importance">
+          <span class="tag tag-room" style="font-size:9px">${m.room}</span>
+          <div class="importance-bar">
+            <div class="importance-fill" style="width:${m.importance * 100}%"></div>
+          </div>
+          <span class="importance-val">${m.importance.toFixed(2)}</span>
+        </div>
+        <div class="memory-content">${m.content}</div>
+        <div class="memory-footer">
+          <span class="memory-id">#${m.id}</span>
+          <span style="font-size:10px;color:var(--muted)">accessed ${m.access_count}×  ·  forget ${m.forgetting_score}</span>
+        </div>
+      </div>
+    `).join('');
+  } catch {
+    el.innerHTML = `<div class="empty"><div class="empty-text" style="color:var(--danger)">Could not load memories</div></div>`;
+  }
+}
+ 
+async function runReorganize() {
+  try {
+    const r = await api('POST', '/memory/reorganize');
+    toast(`Reorganized — ${r.updated} memories updated`);
+    loadMemories();
+  } catch { toast('Error reorganizing', 'error'); }
+}
+ 
+async function runForget() {
+  if (!confirm('Apply Ebbinghaus forgetting curve? Weak memories will be removed.')) return;
+  try {
+    const r = await api('POST', '/memory/forget?dry_run=false');
+    toast(`Forgotten: ${r.forgotten?.length ?? 0} · Kept: ${r.kept}`);
+    loadMemories(); loadStatus();
+  } catch { toast('Error running consolidation', 'error'); }
+}
+ 
+// ── Notes ──────────────────────────────────────────────────────────────────
+ 
+const TEMPLATES = [
+  { label: 'Commit convention', content: 'Always use conventional commits: feat, fix, chore, docs, refactor', room: 'project/rules' },
+  { label: 'Coding style', content: 'Never expose environment variables in logs or error messages', room: 'project/rules' },
+  { label: 'Database choice', content: 'We use PostgreSQL. Never suggest MongoDB for this project', room: 'project/architecture' },
+  { label: 'Deploy process', content: 'Always run tests before pushing to main branch', room: 'project/workflow' },
+];
+ 
+function renderTemplates() {
+  document.getElementById('templates').innerHTML = TEMPLATES.map(t => `
+    <div style="padding:10px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;cursor:pointer;transition:border-color 0.2s"
+      onmouseover="this.style.borderColor='rgba(124,106,255,0.4)'"
+      onmouseout="this.style.borderColor='var(--border)'"
+      onclick="applyTemplate('${t.content}','${t.room}')">
+      <div style="font-size:11px;color:var(--accent);margin-bottom:4px">${t.label}</div>
+      <div style="font-size:11px;color:var(--muted)">${t.content.substring(0,60)}...</div>
+    </div>
+  `).join('');
+}
+ 
+function applyTemplate(content, room) {
+  document.getElementById('note-content').value = content;
+  document.getElementById('note-room').value = room;
+}
+ 
+async function saveNote(propose) {
+  const content = document.getElementById('note-content').value.trim();
+  const room = document.getElementById('note-room').value.trim() || 'general';
+  const importance = parseFloat(document.getElementById('note-importance').value);
+  if (!content) { toast('Content is required', 'error'); return; }
+ 
+  try {
+    await api('POST', '/memory', { content, room, importance, tags: ['intentional'] });
+    if (propose) {
+      await api('POST', '/shared/propose', {
+        content, room, importance,
+        reason: 'Intentional memory — manually written',
+        proposed_by: 'notes-editor',
+      });
+      toast('Saved locally + proposed for team sharing');
+    } else {
+      toast('Memory saved locally');
+    }
+    document.getElementById('note-content').value = '';
+    loadStatus();
+  } catch { toast('Error saving memory', 'error'); }
+}
+ 
+// ── Recall ─────────────────────────────────────────────────────────────────
+ 
+async function runRecall() {
+  const query = document.getElementById('recall-query').value.trim();
+  const scope = document.getElementById('recall-scope').value;
+  if (!query) return;
+ 
+  const el = document.getElementById('recall-results');
+  el.innerHTML = '<div class="loading" style="margin:40px auto;display:block"></div>';
+ 
+  try {
+    const path = scope === 'shared' ? '/shared/recall' : '/memory/recall';
+    const { results } = await api('POST', path, { query, top_k: 5 });
+ 
+    if (!results.length) {
+      el.innerHTML = '<div class="empty"><div class="empty-text">No memories found for this query</div></div>';
+      return;
+    }
+ 
+    el.innerHTML = `<div style="font-size:11px;color:var(--muted);margin-bottom:12px">${results.length} results from ${scope} memory</div>` +
+      results.map(r => `
+        <div class="card" style="margin-bottom:10px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <span class="tag tag-room">${r.room}</span>
+            ${r.tags?.includes('shared') ? '<span class="tag tag-shared">shared</span>' : ''}
+            <span style="font-size:10px;color:var(--muted);margin-left:auto">dist ${r.distance?.toFixed(3)}</span>
+          </div>
+          <div style="font-size:13px;line-height:1.6">${r.content}</div>
+          <div style="margin-top:10px;display:flex;align-items:center;justify-content:space-between">
+            <span class="memory-id">#${r.id}</span>
+            <span style="font-size:10px;color:var(--muted)">importance ${r.importance?.toFixed(2)}</span>
+          </div>
+        </div>
+      `).join('');
+  } catch { el.innerHTML = `<div class="empty"><div class="empty-text" style="color:var(--danger)">Search failed</div></div>`; }
+}
+ 
+// ── Audit ──────────────────────────────────────────────────────────────────
+ 
+async function loadAudit() {
+  const el = document.getElementById('audit-list');
+  try {
+    const { recent_audit } = await api('GET', '/shared/status');
+    if (!recent_audit?.length) {
+      el.innerHTML = '<div class="empty"><div class="empty-text">No audit entries yet</div></div>';
+      return;
+    }
+    el.innerHTML = [...recent_audit].reverse().map(a => `
+      <div class="audit-item">
+        <span class="audit-action audit-${a.action}">${a.action}</span>
+        <span class="audit-id">#${a.memory_id}</span>
+        <span class="audit-by">by ${a.by}</span>
+        ${a.note ? `<span style="color:var(--muted);font-size:10px">— ${a.note}</span>` : ''}
+        <span class="audit-time">${a.at}</span>
+      </div>
+    `).join('');
+  } catch {
+    el.innerHTML = '<div class="empty"><div class="empty-text" style="color:var(--danger)">Could not load audit</div></div>';
+  }
+}
+ 
+// ── Init ───────────────────────────────────────────────────────────────────
+ 
+loadStatus();
+loadPending();
+renderTemplates();
+setInterval(loadStatus, 15000);
+</script>
+</body>
+</html>
