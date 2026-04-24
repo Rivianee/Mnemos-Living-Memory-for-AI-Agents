@@ -201,6 +201,39 @@ Mnemos/
 
 ---
 
+## MCP Server — Connect to Cursor, Claude Code, Windsurf
+
+### Install
+\```
+pip install -r requirements.txt
+\```
+
+### Configure (Claude Code / Claude Desktop)
+Add to your `claude_desktop_config.json`:
+\```json
+{
+  "mcpServers": {
+    "mnemos": {
+      "command": "python",
+      "args": ["/path/to/mcp_server.py"],
+      "env": {
+        "GOOGLE_API_KEY": "optional"
+      }
+    }
+  }
+}
+\```
+
+### Available tools
+| Tool | Description |
+|---|---|
+| `remember` | Store a memory |
+| `recall` | Search by meaning |
+| `forget` | Apply Ebbinghaus curve |
+| `reorganize` | Run PageRank |
+| `status` | Palace overview |
+| `link` | Connect two memories |
+
 ## 🧰 Stack
 
 **[ChromaDB](https://www.trychroma.com/)** · **[NetworkX](https://networkx.org/)** · **[Google Gemini](https://aistudio.google.com/)** · **[Streamlit](https://streamlit.io/)** · **[Click](https://click.palletsprojects.com/)**
